@@ -1,0 +1,180 @@
+---
+title: "The Greatest Rivalry In Baseball: Dodgers vs Giants"
+output:
+  flexdashboard::flex_dashboard:
+    logo: giants-dodgers.jpg
+    orientation: rows
+    vertical_layout: fill
+    theme: lumen
+  
+
+---
+
+
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(dplyr)
+library(Lahman)
+library(plotly)
+library(plyr)
+```
+
+
+```{r, include = FALSE}
+#calculate the number of total world series wins for the LA Dodgers 
+LA_Wins = 
+    Teams %>%
+    select(name,WSWin,DivWin,yearID,LgWin) %>% 
+    filter(name == "Los Angeles Dodgers" & DivWin %in% "Y" & yearID >= 1903)
+ LA_Wins
+#calculate the number of total world series wins for the SF Giants 
+
+Sf_Wins = 
+    Teams %>%
+    select(name,WSWin,DivWin,yearID,LgWin) %>% 
+    filter(name == "San Francisco Giants" & DivWin %in% "Y" & yearID >= 1903) 
+    
+Sf_Wins # 8 division wins 
+```
+
+
+Row {data-height=30, data-width = 100}
+-----------------------------------------------------------------------
+### World Series Wins by the San Francisco Giants 
+```{r}
+valueBox(3, color = "#FF7F00", icon = "fa-trophy")
+```
+
+### Division Wins by the San Francisco Giants 
+```{r}
+valueBox(8, color = "#FF7F00", icon = "fa-award")
+```
+
+### World Series Wins by the LA Dodgers
+```{r}
+valueBox(5, color = "blue", icon = "fa-trophy" )
+```
+
+### Division Wins by the LA Dodgers
+
+```{r}
+valueBox(18, color = "blue", icon = "fa-award")
+```
+
+
+
+
+
+
+Column {data-width=500, data-height = 200}
+-----------------------------------------------------------------------
+
+
+
+```{r, echo=FALSE}
+#Load Teams Table from Lahman database
+#extract Dodgers and Giants data from <1962
+Giants = 
+Teams %>%
+select(yearID,name,park,attendance,divID,Rank,W,G,L,lgID,WSWin,teamID,HR,SOA) %>% 
+filter(name == "San Francisco Giants", yearID >= 1962) %>% 
+mutate(WinPct = W/G)
+
+Dodgers = 
+Teams %>%
+select(yearID,name,park,attendance,divID,Rank,W,G,L,lgID,WSWin,teamID,HR,SOA) %>% 
+filter(name == "Los Angeles Dodgers", yearID >=1962) %>% 
+mutate(WinPct = W/G)
+
+```
+
+### Win Percentage from 1962 - 2019
+```{r fig.width=6, fig.height=5}
+#data to calculate the win percentage for each team 
+fig1_data = data.frame(Giants$WinPct,Giants$yearID,Dodgers$WinPct)
+
+fig1 = plot_ly(fig1_data, x = ~Giants.yearID)
+fig1 = fig1 %>% add_trace(y = ~Dodgers.WinPct, name = "Dodgers WinPCT", mode = 'lines+markers')
+fig1 = fig1 %>% add_trace(y = ~Giants.WinPct, name = "Giants WinPCT", mode = 'lines+markers')
+fig1 = fig1 %>% layout(title= "", xaxis = list(title="Year"), yaxis = list(title="Win Percentage"))
+fig1 = fig1 %>% layout(legend = list(orientation = 'h'), plot_bgcolor='rgb(229,229,229)')
+fig1
+
+```
+
+### MLB Rank for Los Angeles Dodgers and San Francisco Giants
+
+```{r}
+fig3_data = data.frame(Giants$yearID, Giants$Rank, Dodgers$Rank)
+
+fig3 = plot_ly(fig3_data, y = ~Giants.Rank, x = ~Giants.yearID, type = 'scatter',mode = 'markers', marker = list(size = 8,color = '#FF7F00', width = 2), name = 'Giants')
+
+fig3 = fig3 %>% add_trace(y = ~Dodgers.Rank,name = 'Dodgers', marker = list(color = 'blue') )
+
+fig3 = fig3 %>% layout(title = "",xaxis = list(title="Year"),yaxis =list(title="Position In Final Standing"))
+
+fig3 = fig3 %>% layout(legend = list(x = 10, y = 0.9), plot_bgcolor='rgb(229,229,229)')
+fig3
+```
+
+
+
+
+
+Column {.tabset .tabset-fade}
+-----------------------------------------------------------------------
+### Dodgers and Giants Home Game Attendance 
+```{r fig.width=6, fig.height=5}
+#data for home game attendance comparison 
+fig2_data = data.frame(Giants$yearID,Giants$attendance,Dodgers$attendance)
+
+fig2 =plot_ly(fig2_data, x = ~Giants.yearID)
+fig2 = fig2 %>% add_trace(y = ~Dodgers.attendance, name = 'Dodgers Home Game Attendance', mode = "lines")
+fig2 = fig2 %>% add_bars(y=~Giants.attendance, name = 'Giants Home Game Attendance')
+fig2 = fig2 %>% layout(title = "", xaxis = list(title = ""), yaxis =list(title="Attendance (Millions)"))
+fig2 = fig2 %>% layout(legend = list(orientation = 'h'), plot_bgcolor='rgb(229,229,229)')
+fig2
+
+```
+
+### Home Runs Per Game 
+
+```{r}
+fig4_data = data.frame(Dodgers$yearID,Dodgers$G,Dodgers$HR,Giants$G, Giants$HR) %>% 
+  mutate(Dodgers_HRpg = Dodgers$HR/Dodgers$G) %>% 
+  mutate(Giants_HRpg = Giants$HR/Giants$G)
+
+fig4 = plot_ly(fig4_data, x = ~Dodgers.yearID)
+
+fig4 = fig4 %>% add_trace(y = ~Dodgers_HRpg, name = "Los Angeles Dodgers",mode = "lines+marker")
+fig4 = fig4 %>% add_trace(y = ~Giants_HRpg, name = "San Francisco Giants", mode = "lines+marker")
+fig4 = fig4 %>% layout(title="", xaxis=list(title = ""), yaxis = list(title ="Average Home Runs Per Game"))
+fig4 = fig4 %>% layout(legend = list(orientation = 'h'), plot_bgcolor='rgb(229,229,229)')
+fig4
+```
+
+### Average Strikeouts by Pitchers per Game 
+
+```{r}
+fig5_data = data.frame(Dodgers$yearID,Dodgers$G,Dodgers$SOA,Giants$G,Giants$SOA) %>% 
+  mutate(Dodgers_SOA = Dodgers$SOA/Dodgers$G) %>% 
+  mutate(Giants_SOA = Giants$SOA/Giants$G)
+
+
+fig5 = plot_ly(fig5_data, x= ~Dodgers.yearID)
+fig5 = fig5 %>% add_trace(y=~Dodgers_SOA, name = "Dodger",mode = "lines+dash")
+fig5 = fig5 %>% add_trace(y=~Giants_SOA, name = "Giants",mode="lines+marker")
+fig5 = fig5 %>% layout(title="", xaxis=list(title = ""), yaxis = list(title ="Strikeouts by Pitchers"))
+fig5 = fig5 %>% layout(legend = list(orientation = 'h'), plot_bgcolor='rgb(229,229,229)')
+fig5
+```
+
+
+
+
+
+
+
+
+
